@@ -45,9 +45,7 @@ RUN if [[ "$INSTALL_XDEBUG" == "0" ]]; then rm -f /usr/local/etc/php/conf.d/dock
 COPY ${BUILD_CONTEXT_CONFIG_DIR}/docker-php-customize.ini /usr/local/etc/php/conf.d/docker-php-customize.ini
 
 # prepare folders for usage
-RUN mkdir /var/www/var && \
-    chown -R docker:docker /var/www && \
-    rm -rf /var/www/html
+RUN chown -R docker:docker /var/www
 
 # setup workdir and user (next commands will run under this context, but also the running container will inherit this - if not overriden at runtime)
 WORKDIR /var/www
@@ -58,6 +56,8 @@ USER docker
 
 # - composer install without scripts
 #RUN composer install --optimize-autoloader --no-scripts
+
+COPY --chown=docker:docker . .
 
 # expose port for Xdebug 3
 EXPOSE 9003
