@@ -1,0 +1,103 @@
+kind: Environment
+name: 'PHP Environment with MySQL'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/
+    dockerCompose:
+      build:
+        context: ./apps/php/
+        dockerfile: .docker/backend/Dockerfile
+      command:
+        - php-fpm
+      environment:
+        MYSQL_HOST: mysql
+        MYSQL_DATABASE: '{{ components.mysql.vars.MYSQL_DATABASE }}'
+        MYSQL_USER: '{{ components.mysql.vars.MYSQL_USER }}'
+        MYSQL_PASSWORD: '{{ components.mysql.vars.MYSQL_PASSWORD }}'
+      user: '1000:1000'
+      ports:
+        - '9003:9003'
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 750M
+          reservations:
+            cpus: '0.15'
+            memory: 500M
+    pod:
+      sidecar_containers:
+        - from: nginx-api
+          name: nginx-api
+          shared_paths:
+            - path: /var/www
+              target:
+                path: /var/www
+                container: '@parent'
+              initial_contents: '@target'
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: SidecarContainer
+    name: nginx-api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/.docker/nginx-api
+    dockerCompose:
+      build:
+        context: ./apps/php/.docker/nginx-api
+      environment:
+        BACKEND_API_HOST: localhost
+        HTTPS_METHOD: noredirect
+        SELF_SIGNED: api.environments.local.bunnyshell.com
+        VIRTUAL_HOST: api.environments.local.bunnyshell.com
+        VIRTUAL_PORT: '8080'
+        VIRTUAL_PORT_SSL: '8443'
+      ports:
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 350M
+
+  -
+    kind: Database
+    name: mysql
+    dockerCompose:
+      image: 'mysql:8.0.31'
+      command: '--default-authentication-plugin=mysql_native_password'
+      environment:
+        MYSQL_DATABASE: bunnyshell
+        MYSQL_USER: bunnyshell_user
+        MYSQL_PASSWORD: bunnyshell_pass
+        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
+      ports:
+        - '3306:3306'
+      deploy:
+        resources:
+          limits:
+            memory: 1G
+          reservations:
+            cpus: '0.25'
+            memory: 750M
+    volumes:
+      - name: database-mysql-data
+        mount: /var/lib/mysql
+        subPath: ''
+
+volumes:
+  - name: database-mysql-data
+    size: 1Gi
+    type: disk

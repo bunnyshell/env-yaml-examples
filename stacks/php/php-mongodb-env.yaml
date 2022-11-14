@@ -1,0 +1,98 @@
+kind: Environment
+name: 'PHP Environment with Mongo'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/
+    dockerCompose:
+      build:
+        context: ./apps/php/
+        dockerfile: .docker/backend/Dockerfile
+      command:
+        - php-fpm
+      environment:
+        MONGO_HOST: mongodb
+        MONGO_USER: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_USERNAME }}'
+        MONGO_PASS: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_PASSWORD }}'
+      user: '1000:1000'
+      ports:
+        - '9003:9003'
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 750M
+          reservations:
+            cpus: '0.15'
+            memory: 500M
+    pod:
+      sidecar_containers:
+        - from: nginx-api
+          name: nginx-api
+          shared_paths:
+            - path: /var/www
+              target:
+                path: /var/www
+                container: '@parent'
+              initial_contents: '@target'
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: SidecarContainer
+    name: nginx-api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/.docker/nginx-api
+    dockerCompose:
+      build:
+        context: ./apps/php/.docker/nginx-api
+      environment:
+        BACKEND_API_HOST: localhost
+        HTTPS_METHOD: noredirect
+        SELF_SIGNED: api.environments.local.bunnyshell.com
+        VIRTUAL_HOST: api.environments.local.bunnyshell.com
+        VIRTUAL_PORT: '8080'
+        VIRTUAL_PORT_SSL: '8443'
+      ports:
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 350M
+
+  - kind: Database
+    name: mongodb
+    dockerCompose:
+      image: 'mongo:5.0.13'
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: bunnyshell_root_pass
+      ports:
+        - '27017:27017'
+      deploy:
+        resources:
+          limits:
+            memory: 350M
+          reservations:
+            cpus: '0.1'
+            memory: 250M
+    volumes:
+      - name: database-mongo-data
+        mount: /data/db
+        subPath: ''
+
+volumes:
+  - name: database-mongo-data
+    size: 1Gi
+    type: disk
