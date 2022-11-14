@@ -14,7 +14,7 @@ $connectionStatus = [
  * Check MySQL connectivity
  */
 try {
-    $dbh = new PDO(
+    $mysqlClient = new PDO(
         sprintf(
             'mysql:host=%s:3306;dbname=%s',
             getenv('MYSQL_HOST') ?: 'none',
@@ -43,7 +43,7 @@ $mongoClient = new MongoDB\Client(
 );
 
 try {
-    $dbs = $mongoClient->listDatabases();
+    $mongoClient->listDatabases();
 
     $connectionStatus['mongo'] = true;
 } catch(Exception $e){
@@ -53,18 +53,36 @@ try {
 /**
  * Check Redis connectivity
  */
-$redis = new Predis\Client([
+$redisClient = new Predis\Client([
     'host'    => getenv('REDIS_HOST') ?: 'none',
     'port'    => 6379,
     'timeout' => 0.5
 ]);
 
 try {
-    $redis->ping();
+    $redisClient->ping();
 
     $connectionStatus['redis'] = true;
 } catch (Exception $e) {
     $connectionStatus['redis'] = false;
+}
+
+/**
+ * Check RabbitMQ connectivity
+ */
+$rabbitClient = new PhpAmqpLib\Connection\AMQPStreamConnection(
+    getenv('RABBITMQ_HOST') ?: 'none',
+    5672,
+    getenv('RABBITMQ_USER') ?: 'none',
+    getenv('RABBITMQ_PASS') ?: 'none'
+);
+
+try {
+    $rabbitClient->channel();
+
+    $connectionStatus['rabbitmq'] = true;
+} catch (Exception $e) {
+    $connectionStatus['rabbitmq'] = false;
 }
 
 header('Content-Type: application/json');

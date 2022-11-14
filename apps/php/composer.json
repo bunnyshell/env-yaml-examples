@@ -1,6 +1,7 @@
 {
   "require": {
     "mongodb/mongodb": "^1.11",
-    "predis/predis": "^2.0"
+    "predis/predis": "^2.0",
+    "php-amqplib/php-amqplib": "^2.0"
   }
 }

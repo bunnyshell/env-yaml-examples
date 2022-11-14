@@ -19,15 +19,11 @@ RUN curl -sSLf \
         https://github.com/mlocati/docker-php-extension-installer/releases/latest/download/install-php-extensions && \
     chmod +x /usr/local/bin/install-php-extensions && \
     install-php-extensions \
-    apcu-5.1.21 \
     amqp-1.11.0 \
-    intl \
     mongodb-1.12.1 \
-    opcache \
     pdo_mysql \
     redis-5.3.7 \
-    gmp \
-    pcntl
+    bcmath
 
 RUN if [[ "$INSTALL_XDEBUG" == "1" ]]; then install-php-extensions xdebug-3.1.5; fi
 
