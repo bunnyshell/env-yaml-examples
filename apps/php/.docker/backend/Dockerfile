@@ -32,8 +32,8 @@ RUN curl -sSLf \
 RUN if [[ "$INSTALL_XDEBUG" == "1" ]]; then install-php-extensions xdebug-3.1.5; fi
 
 # install composer
-#COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
-#ENV COMPOSER_HOME=/tmp/composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
+ENV COMPOSER_HOME=/tmp/composer
 
 # subdir in the build context where we have some docker related config files
 ARG BUILD_CONTEXT_CONFIG_DIR=".docker/backend"
@@ -52,10 +52,10 @@ WORKDIR /var/www
 USER docker
 
 # - copy composer.json and composer lock (optimise image build - copy only these files and run install, if these change rarely we can reuse this image layer too)
-#COPY composer.json composer.lock ./
+COPY composer.json composer.lock ./
 
 # - composer install without scripts
-#RUN composer install --optimize-autoloader --no-scripts
+RUN composer install --optimize-autoloader --no-scripts
 
 COPY --chown=docker:docker . .
 
