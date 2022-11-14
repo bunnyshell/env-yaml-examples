@@ -53,11 +53,6 @@ components:
         context: ./apps/php/.docker/nginx-api
       environment:
         BACKEND_API_HOST: localhost
-        HTTPS_METHOD: noredirect
-        SELF_SIGNED: api.environments.local.bunnyshell.com
-        VIRTUAL_HOST: api.environments.local.bunnyshell.com
-        VIRTUAL_PORT: '8080'
-        VIRTUAL_PORT_SSL: '8443'
       ports:
         - '8443:8443'
         - '8080:8080'
