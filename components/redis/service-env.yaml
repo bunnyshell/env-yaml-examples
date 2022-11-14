@@ -1,0 +1,18 @@
+kind: Environment
+name: 'Redis Component Example'
+type: primary
+
+components:
+  - kind: Service
+    name: redis
+    dockerCompose:
+      image: 'redis:6.2.7-alpine'
+      ports:
+        - '6379:6379'
+      deploy:
+        resources:
+          limits:
+            memory: 200M
+          reservations:
+            cpus: '0.10'
+            memory: 100M

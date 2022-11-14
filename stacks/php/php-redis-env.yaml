@@ -1,5 +1,5 @@
 kind: Environment
-name: 'PHP Environment with MySQL'
+name: 'PHP Environment with Redis'
 type: primary
 
 components:
@@ -15,10 +15,7 @@ components:
       command:
         - php-fpm
       environment:
-        MYSQL_HOST: mysql
-        MYSQL_DATABASE: '{{ components.mysql.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql.vars.MYSQL_PASSWORD }}'
+        REDIS_HOST: redis
       user: '1000:1000'
       ports:
         - '9003:9003'
@@ -72,31 +69,16 @@ components:
             cpus: '0.10'
             memory: 350M
 
-  - kind: Database
-    name: mysql
+  - kind: Service
+    name: redis
     dockerCompose:
-      image: 'mysql:8.0.31'
-      command: '--default-authentication-plugin=mysql_native_password'
-      environment:
-        MYSQL_DATABASE: bunnyshell
-        MYSQL_USER: bunnyshell_user
-        MYSQL_PASSWORD: bunnyshell_pass
-        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
+      image: 'redis:6.2.7-alpine'
       ports:
-        - '3306:3306'
+        - '6379:6379'
       deploy:
         resources:
           limits:
-            memory: 1G
+            memory: 200M
           reservations:
-            cpus: '0.25'
-            memory: 750M
-    volumes:
-      - name: database-mysql-data
-        mount: /var/lib/mysql
-        subPath: ''
-
-volumes:
-  - name: database-mysql-data
-    size: 1Gi
-    type: disk
+            cpus: '0.10'
+            memory: 100M
