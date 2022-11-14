@@ -26,7 +26,7 @@ server {
     ssl_certificate     /etc/ssl/certs/environments.local.bunnyshell.com.crt;
     ssl_certificate_key /etc/ssl/certs/environments.local.bunnyshell.com.key;
     
-    root /var/www/public;
+    root /var/www;
     index index.php index.html index.htm;
     port_in_redirect off;
 
