@@ -62,8 +62,8 @@ components:
     destroy:
       - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
     start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/postgres-postgresql'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/mysql'
     stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/postgres-postgresql'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
     exportVariables:
       - MYSQL_HOST
