@@ -1,5 +1,5 @@
 kind: Environment
-name: 'nodejs Environment with MySQL'
+name: 'nodejs Environment with MongoDB'
 type: primary
 
 components:
@@ -13,10 +13,9 @@ components:
         context: ./apps/nodejs/
         dockerfile: .docker/Dockerfile
       environment:
-        MYSQL_HOST: mysql
-        MYSQL_DATABASE: '{{ components.mysql.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql.vars.MYSQL_PASSWORD }}'
+        MONGO_HOST: mongodb
+        MONGO_USER: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_USERNAME }}'
+        MONGO_PASS: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_PASSWORD }}'
       user: '1000:1000'
       ports:
         - '8080:8080'
@@ -33,30 +32,27 @@ components:
         servicePort: 8080
 
   - kind: Database
-    name: mysql
+    name: mongodb
     dockerCompose:
-      image: 'mysql:8.0.31'
-      command: '--default-authentication-plugin=mysql_native_password'
+      image: 'mongo:5.0.13'
       environment:
-        MYSQL_DATABASE: bunnyshell
-        MYSQL_USER: bunnyshell_user
-        MYSQL_PASSWORD: bunnyshell_pass
-        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: bunnyshell_root_pass
       ports:
-        - '3306:3306'
+        - '27017:27017'
       deploy:
         resources:
           limits:
-            memory: 1G
+            memory: 350M
           reservations:
-            cpus: '0.25'
-            memory: 750M
+            cpus: '0.1'
+            memory: 250M
     volumes:
-      - name: database-mysql-data
-        mount: /var/lib/mysql
+      - name: database-mongo-data
+        mount: /data/db
         subPath: ''
 
 volumes:
-  - name: database-mysql-data
+  - name: database-mongo-data
     size: 1Gi
     type: disk

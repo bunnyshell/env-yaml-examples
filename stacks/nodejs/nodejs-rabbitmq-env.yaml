@@ -1,5 +1,5 @@
 kind: Environment
-name: 'nodejs Environment with MySQL'
+name: 'nodejs Environment with RabbitMQ'
 type: primary
 
 components:
@@ -13,10 +13,9 @@ components:
         context: ./apps/nodejs/
         dockerfile: .docker/Dockerfile
       environment:
-        MYSQL_HOST: mysql
-        MYSQL_DATABASE: '{{ components.mysql.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql.vars.MYSQL_PASSWORD }}'
+        RABBITMQ_HOST: rabbitmq
+        RABBITMQ_USER: '{{ components.rabbitmq.vars.RABBITMQ_DEFAULT_USER }}'
+        RABBITMQ_PASS: '{{ components.rabbitmq.vars.RABBITMQ_DEFAULT_PASS }}'
       user: '1000:1000'
       ports:
         - '8080:8080'
@@ -32,31 +31,33 @@ components:
         path: /
         servicePort: 8080
 
-  - kind: Database
-    name: mysql
+  - kind: Service
+    name: rabbitmq
     dockerCompose:
-      image: 'mysql:8.0.31'
-      command: '--default-authentication-plugin=mysql_native_password'
+      image: 'rabbitmq:3.9.25-management'
       environment:
-        MYSQL_DATABASE: bunnyshell
-        MYSQL_USER: bunnyshell_user
-        MYSQL_PASSWORD: bunnyshell_pass
-        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
+        RABBITMQ_DEFAULT_USER: bunnyshell_user
+        RABBITMQ_DEFAULT_PASS: bunnyshell_pass
       ports:
-        - '3306:3306'
+        - '5672:5672'
+        - '15672:15672'
       deploy:
         resources:
           limits:
-            memory: 1G
+            memory: 500M
           reservations:
-            cpus: '0.25'
-            memory: 750M
+            cpus: '0.10'
+            memory: 300M
+    hosts:
+      - hostname: rabbitmq-{{env.base_domain}}
+        path: /
+        servicePort: 15672
     volumes:
-      - name: database-mysql-data
-        mount: /var/lib/mysql
+      - name: rabbitmq-data
+        mount: /var/lib/rabbitmq/mnesia
         subPath: ''
 
 volumes:
-  - name: database-mysql-data
+  - name: rabbitmq-data
     size: 1Gi
     type: disk
