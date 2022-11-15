@@ -1,0 +1,30 @@
+kind: Environment
+name: 'MongoDB Component Example'
+type: primary
+
+components:
+  - kind: Database
+    name: mongodb
+    dockerCompose:
+      image: 'mongo:5.0.13'
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: bunnyshell_root_pass
+      ports:
+        - '27017:27017'
+      deploy:
+        resources:
+          limits:
+            memory: 350M
+          reservations:
+            cpus: '0.1'
+            memory: 250M
+    volumes:
+      - name: database-mongo-data
+        mount: /data/db
+        subPath: ''
+
+volumes:
+  - name: database-mongo-data
+    size: 1Gi
+    type: disk

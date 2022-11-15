@@ -1,0 +1,33 @@
+kind: Environment
+name: 'MySQL Component Example'
+type: primary
+
+components:
+  - kind: Database
+    name: mysql
+    dockerCompose:
+      image: 'mysql:8.0.31'
+      command: '--default-authentication-plugin=mysql_native_password'
+      environment:
+        MYSQL_DATABASE: bunnyshell
+        MYSQL_USER: bunnyshell_user
+        MYSQL_PASSWORD: bunnyshell_pass
+        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
+      ports:
+        - '3306:3306'
+      deploy:
+        resources:
+          limits:
+            memory: 1G
+          reservations:
+            cpus: '0.25'
+            memory: 750M
+    volumes:
+      - name: database-mysql-data
+        mount: /var/lib/mysql
+        subPath: ''
+
+volumes:
+  - name: database-mysql-data
+    size: 1Gi
+    type: disk

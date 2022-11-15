@@ -1,0 +1,79 @@
+kind: Environment
+name: 'PHP Environment with Redis'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/
+    dockerCompose:
+      build:
+        context: ./apps/php/
+        dockerfile: .docker/backend/Dockerfile
+      command:
+        - php-fpm
+      environment:
+        REDIS_HOST: redis
+      user: '1000:1000'
+      ports:
+        - '9003:9003'
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 750M
+          reservations:
+            cpus: '0.15'
+            memory: 500M
+    pod:
+      sidecar_containers:
+        - from: nginx-api
+          name: nginx-api
+          shared_paths:
+            - path: /var/www
+              target:
+                path: /var/www
+                container: '@parent'
+              initial_contents: '@target'
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: SidecarContainer
+    name: nginx-api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/.docker/nginx-api
+    dockerCompose:
+      build:
+        context: ./apps/php/.docker/nginx-api
+      environment:
+        BACKEND_API_HOST: localhost
+      ports:
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 350M
+
+  - kind: Service
+    name: redis
+    dockerCompose:
+      image: 'redis:6.2.7-alpine'
+      ports:
+        - '6379:6379'
+      deploy:
+        resources:
+          limits:
+            memory: 200M
+          reservations:
+            cpus: '0.10'
+            memory: 100M

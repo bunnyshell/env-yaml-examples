@@ -1,0 +1,58 @@
+kind: Environment
+name: 'nodejs Environment with MongoDB'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/nodejs/
+    dockerCompose:
+      build:
+        context: ./apps/nodejs/
+        dockerfile: .docker/Dockerfile
+      environment:
+        MONGO_HOST: mongodb
+        MONGO_USER: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_USERNAME }}'
+        MONGO_PASS: '{{ components.mongodb.vars.MONGO_INITDB_ROOT_PASSWORD }}'
+      user: '1000:1000'
+      ports:
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 250M
+          reservations:
+            cpus: '0.15'
+            memory: 50M
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: Database
+    name: mongodb
+    dockerCompose:
+      image: 'mongo:5.0.13'
+      environment:
+        MONGO_INITDB_ROOT_USERNAME: root
+        MONGO_INITDB_ROOT_PASSWORD: bunnyshell_root_pass
+      ports:
+        - '27017:27017'
+      deploy:
+        resources:
+          limits:
+            memory: 350M
+          reservations:
+            cpus: '0.1'
+            memory: 250M
+    volumes:
+      - name: database-mongo-data
+        mount: /data/db
+        subPath: ''
+
+volumes:
+  - name: database-mongo-data
+    size: 1Gi
+    type: disk

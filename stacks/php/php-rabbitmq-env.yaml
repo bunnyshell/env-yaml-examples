@@ -1,0 +1,98 @@
+kind: Environment
+name: 'PHP Environment with RabbitMQ'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/
+    dockerCompose:
+      build:
+        context: ./apps/php/
+        dockerfile: .docker/backend/Dockerfile
+      command:
+        - php-fpm
+      environment:
+        RABBITMQ_HOST: rabbitmq
+        RABBITMQ_USER: '{{ components.rabbitmq.vars.RABBITMQ_DEFAULT_USER }}'
+        RABBITMQ_PASS: '{{ components.rabbitmq.vars.RABBITMQ_DEFAULT_PASS }}'
+      user: '1000:1000'
+      ports:
+        - '9003:9003'
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 750M
+          reservations:
+            cpus: '0.15'
+            memory: 500M
+    pod:
+      sidecar_containers:
+        - from: nginx-api
+          name: nginx-api
+          shared_paths:
+            - path: /var/www
+              target:
+                path: /var/www
+                container: '@parent'
+              initial_contents: '@target'
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: SidecarContainer
+    name: nginx-api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/.docker/nginx-api
+    dockerCompose:
+      build:
+        context: ./apps/php/.docker/nginx-api
+      environment:
+        BACKEND_API_HOST: localhost
+      ports:
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 350M
+
+  - kind: Service
+    name: rabbitmq
+    dockerCompose:
+      image: 'rabbitmq:3.9.25-management'
+      environment:
+        RABBITMQ_DEFAULT_USER: bunnyshell_user
+        RABBITMQ_DEFAULT_PASS: bunnyshell_pass
+      ports:
+        - '5672:5672'
+        - '15672:15672'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 300M
+    hosts:
+      - hostname: rabbitmq-{{env.base_domain}}
+        path: /
+        servicePort: 15672
+    volumes:
+      - name: rabbitmq-data
+        mount: /var/lib/rabbitmq/mnesia
+        subPath: ''
+
+volumes:
+  - name: rabbitmq-data
+    size: 1Gi
+    type: disk

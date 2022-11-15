@@ -1,0 +1,44 @@
+kind: Environment
+name: 'nodejs Environment with Redis'
+type: primary
+
+components:
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/nodejs/
+    dockerCompose:
+      build:
+        context: ./apps/nodejs/
+        dockerfile: .docker/Dockerfile
+      environment:
+        REDIS_HOST: redis
+      user: '1000:1000'
+      ports:
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 250M
+          reservations:
+            cpus: '0.15'
+            memory: 50M
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
+
+  - kind: Service
+    name: redis
+    dockerCompose:
+      image: 'redis:6.2.7-alpine'
+      ports:
+        - '6379:6379'
+      deploy:
+        resources:
+          limits:
+            memory: 200M
+          reservations:
+            cpus: '0.10'
+            memory: 100M
