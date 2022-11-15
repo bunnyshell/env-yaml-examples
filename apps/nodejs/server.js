@@ -1,6 +1,7 @@
 const http = require('http');
 const process = require('process');
 const mysql = require('mysql2');
+const {MongoClient} = require('mongodb');
 
 const requestListener = async function (req, res) {
     const statuses = await getConnectivityStatuses();
@@ -30,6 +31,10 @@ const getConnectivityStatuses = async function() {
         .then((mysqlClient) => { connectionStatus.mysql = true })
         .catch((err) => { connectionStatus.mysql = false });
 
+    await checkMongo()
+        .then((mongoClient) => { connectionStatus.mongo = true })
+        .catch((err) => { console.log(err); connectionStatus.mongo = false; });
+
     console.log('Checked statuses', JSON.stringify(connectionStatus));
 
     return connectionStatus;
@@ -57,4 +62,16 @@ const checkMySQL = function () {
             resolve(mysqlClient);
         });
     });
+}
+
+/**
+ * Checks Mongo
+ *
+ * @returns {Promise<unknown>}
+ */
+const checkMongo = function () {
+    const MONGO_URL = 'mongodb://' + process.env.MONGO_USER + ':' + process.env.MONGO_PASS + '@' + process.env.MONGO_HOST + ':27017/admin';
+    const mongoClient = new MongoClient(MONGO_URL);
+
+    return mongoClient.connect();
 }
