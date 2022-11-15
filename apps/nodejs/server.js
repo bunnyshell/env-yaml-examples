@@ -3,6 +3,7 @@ const process = require('process');
 const mysql = require('mysql2');
 const {MongoClient} = require('mongodb');
 const redis = require('redis');
+const amqplib = require('amqplib');
 
 const requestListener = async function (req, res) {
     const statuses = await getConnectivityStatuses();
@@ -39,6 +40,10 @@ const getConnectivityStatuses = async function() {
     await checkRedis()
         .then((redisClient) => { connectionStatus.redis = true })
         .catch((err) => { console.log(err); connectionStatus.redis = false; });
+
+    await checkRabbitMQ()
+        .then((redisClient) => { connectionStatus.rabbitmq = true })
+        .catch((err) => { console.log(err); connectionStatus.rabbitmq = false; });
 
     console.log('Checked statuses', JSON.stringify(connectionStatus));
 
@@ -91,5 +96,16 @@ const checkRedis = function () {
         url: 'redis://' + process.env.REDIS_HOST + ':6379'
     });
 
-    return redisClient.connect()
+    return redisClient.connect();
+}
+
+/**
+ * Checks RabbitMQ
+ *
+ * @returns {Promise<unknown>}
+ */
+const checkRabbitMQ = function () {
+    const AMQP_URL = 'amqp://' + process.env.RABBITMQ_USER + ':' + process.env.RABBITMQ_PASS + '@' + process.env.RABBITMQ_HOST + ':5672';
+
+    return amqplib.connect(AMQP_URL, "heartbeat=60");
 }

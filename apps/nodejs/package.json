@@ -1,7 +1,9 @@
 {
   "dependencies": {
+    "amqplib": "^0.10.3",
     "mongodb": "^4.11.0",
-    "mysql2": "^2.3.3"
+    "mysql2": "^2.3.3",
+    "redis": "^4.5.0"
   },
   "scripts": {
     "start": "node server.js"
