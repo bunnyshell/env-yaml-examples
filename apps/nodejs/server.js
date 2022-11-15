@@ -2,6 +2,7 @@ const http = require('http');
 const process = require('process');
 const mysql = require('mysql2');
 const {MongoClient} = require('mongodb');
+const redis = require('redis');
 
 const requestListener = async function (req, res) {
     const statuses = await getConnectivityStatuses();
@@ -29,11 +30,15 @@ const getConnectivityStatuses = async function() {
 
     await checkMySQL()
         .then((mysqlClient) => { connectionStatus.mysql = true })
-        .catch((err) => { connectionStatus.mysql = false });
+        .catch((err) => { console.log(err); connectionStatus.mysql = false });
 
     await checkMongo()
         .then((mongoClient) => { connectionStatus.mongo = true })
         .catch((err) => { console.log(err); connectionStatus.mongo = false; });
+
+    await checkRedis()
+        .then((redisClient) => { connectionStatus.redis = true })
+        .catch((err) => { console.log(err); connectionStatus.redis = false; });
 
     console.log('Checked statuses', JSON.stringify(connectionStatus));
 
@@ -71,7 +76,20 @@ const checkMySQL = function () {
  */
 const checkMongo = function () {
     const MONGO_URL = 'mongodb://' + process.env.MONGO_USER + ':' + process.env.MONGO_PASS + '@' + process.env.MONGO_HOST + ':27017/admin';
-    const mongoClient = new MongoClient(MONGO_URL);
+    const mongoClient = new MongoClient(MONGO_URL, {serverSelectionTimeoutMS: 500});
 
     return mongoClient.connect();
+}
+
+/**
+ * Checks Redis
+ *
+ * @returns {Promise<unknown>}
+ */
+const checkRedis = function () {
+    const redisClient = redis.createClient({
+        url: 'redis://' + process.env.REDIS_HOST + ':6379'
+    });
+
+    return redisClient.connect()
 }
