@@ -29,12 +29,12 @@ components:
           -f my_values.yaml \
           mysql bitnami/mysql --version 9.4.3
       - |
-        MYSQL_HOST="postgres-postgresql.{{ env.k8s.namespace }}.svc.cluster.local"
+        MYSQL_HOST="mysql.{{ env.k8s.namespace }}.svc.cluster.local"
     destroy:
       - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
     start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/postgres-postgresql'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/mysql'
     stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/postgres-postgresql'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
     exportVariables:
       - MYSQL_HOST
