@@ -1,5 +1,5 @@
 kind: Environment
-name: 'nodejs Environment with MongoDB'
+name: 'PHP Environment with Mongo'
 type: primary
 
 components:
@@ -7,29 +7,64 @@ components:
     name: api
     gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
     gitBranch: master
-    gitApplicationPath: ./apps/nodejs/
+    gitApplicationPath: ./apps/php/
     dockerCompose:
       build:
-        context: ./apps/nodejs/
-        dockerfile: .docker/Dockerfile
+        context: ./apps/php/
+        dockerfile: .docker/backend/Dockerfile
+      command:
+        - php-fpm
       environment:
-        MONGO_HOST: '{{ components.mongodb-runner.exported.MONGO_HOST }}'
-        MONGO_USER: '{{ components.mongodb-runner.vars.MONGO_USER }}'
-        MONGO_PASS: '{{ components.mongodb-runner.vars.MONGO_PASS }}'
+        MONGO_HOST: mongodb
+        MONGO_USER: '{{ components.mongodb-runner.vars.MONGO_ROOT_USER }}'
+        MONGO_PASS: '{{ components.mongodb-runner.vars.MONGO_ROOT_PASS }}'
       user: '1000:1000'
       ports:
+        - '9003:9003'
+        - '8443:8443'
         - '8080:8080'
       deploy:
         resources:
           limits:
-            memory: 250M
+            memory: 750M
           reservations:
             cpus: '0.15'
-            memory: 50M
+            memory: 500M
+    pod:
+      sidecar_containers:
+        - from: nginx-api
+          name: nginx-api
+          shared_paths:
+            - path: /var/www
+              target:
+                path: /var/www
+                container: '@parent'
+              initial_contents: '@target'
     hosts:
       - hostname: api-{{env.base_domain}}
         path: /
         servicePort: 8080
+
+  - kind: SidecarContainer
+    name: nginx-api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/php/.docker/nginx-api
+    dockerCompose:
+      build:
+        context: ./apps/php/.docker/nginx-api
+      environment:
+        BACKEND_API_HOST: localhost
+      ports:
+        - '8443:8443'
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 500M
+          reservations:
+            cpus: '0.10'
+            memory: 350M
 
   - kind: Helm
     name: mongodb-runner

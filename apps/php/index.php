@@ -70,14 +70,14 @@ try {
 /**
  * Check RabbitMQ connectivity
  */
-$rabbitClient = new PhpAmqpLib\Connection\AMQPStreamConnection(
-    getenv('RABBITMQ_HOST') ?: 'none',
-    5672,
-    getenv('RABBITMQ_USER') ?: 'none',
-    getenv('RABBITMQ_PASS') ?: 'none'
-);
-
 try {
+    $rabbitClient = new PhpAmqpLib\Connection\AMQPStreamConnection(
+        getenv('RABBITMQ_HOST') ?: 'none',
+        5672,
+        getenv('RABBITMQ_USER') ?: 'none',
+        getenv('RABBITMQ_PASS') ?: 'none'
+    );
+
     $rabbitClient->channel();
 
     $connectionStatus['rabbitmq'] = true;
