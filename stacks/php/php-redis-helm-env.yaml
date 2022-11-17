@@ -20,11 +20,13 @@ components:
       - |
         REDIS_HOST="redis-master.{{ env.k8s.namespace }}.svc.cluster.local"
     destroy:
-      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
+      - 'helm uninstall redis --namespace {{ env.k8s.namespace }}'
     start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} deployment/redis'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/redis-master'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/redis-replicas'
     stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} deployment/redis'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/redis-master'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/redis-replicas'
     exportVariables:
       - REDIS_HOST
 
