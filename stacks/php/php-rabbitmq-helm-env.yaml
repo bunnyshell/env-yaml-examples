@@ -3,6 +3,38 @@ name: 'PHP Environment with RabbitMQ'
 type: primary
 
 components:
+  - kind: Helm
+    name: rabbitmq-runner
+    runnerImage: 'dtzar/helm-kubectl:3.8.2'
+    environment:
+      RABBITMQ_USER: bunnyshell_user
+      RABBITMQ_PASS: bunnyshell_pass
+    deploy:
+      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
+      - |
+        cat << EOF > my_values.yaml
+            global:
+                storageClass: bns-network-sc
+            auth:
+                username: {{ components.rabbitmq-runner.vars.RABBITMQ_USER }}
+                password: {{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}
+        EOF
+      - |
+        helm upgrade --install --namespace {{ env.k8s.namespace }} \
+          --post-renderer /bns/helpers/helm/add_labels/kustomize \
+          -f my_values.yaml \
+          rabbitmq bitnami/rabbitmq --version 11.1.2
+      - |
+        RABBITMQ_HOST="rabbitmq.{{ env.k8s.namespace }}.svc.cluster.local"
+    destroy:
+      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
+    start:
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
+    stop:
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
+    exportVariables:
+      - RABBITMQ_HOST
+
   - kind: Application
     name: api
     gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
@@ -65,35 +97,3 @@ components:
           reservations:
             cpus: '0.10'
             memory: 350M
-
-  - kind: Helm
-    name: rabbitmq-runner
-    runnerImage: 'dtzar/helm-kubectl:3.8.2'
-    environment:
-      RABBITMQ_USER: bunnyshell_user
-      RABBITMQ_PASS: bunnyshell_pass
-    deploy:
-      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
-      - |
-        cat << EOF > my_values.yaml
-            global:
-                storageClass: bns-network-sc
-            auth:
-                username: {{ components.rabbitmq-runner.vars.RABBITMQ_USER }}
-                password: {{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}
-        EOF
-      - |
-        helm upgrade --install --namespace {{ env.k8s.namespace }} \
-          --post-renderer /bns/helpers/helm/add_labels/kustomize \
-          -f my_values.yaml \
-          rabbitmq bitnami/rabbitmq --version 11.1.2
-      - |
-        RABBITMQ_HOST="rabbitmq.{{ env.k8s.namespace }}.svc.cluster.local"
-    destroy:
-      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
-    start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
-    stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
-    exportVariables:
-      - RABBITMQ_HOST

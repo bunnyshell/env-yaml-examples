@@ -3,6 +3,42 @@ name: 'PHP Environment with MySQL'
 type: primary
 
 components:
+  - kind: Helm
+    name: mysql-runner
+    runnerImage: 'dtzar/helm-kubectl:3.8.2'
+    environment:
+      MYSQL_DATABASE: bunnyshell
+      MYSQL_USER: bunnyshell_user
+      MYSQL_PASS: bunnyshell_pass
+      MYSQL_ROOT_PASS: bunnyshell_root_pass
+    deploy:
+      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
+      - |
+        cat << EOF > my_values.yaml
+            global:
+                storageClass: bns-network-sc
+            auth:
+                database: {{ components.mysql-runner.vars.MYSQL_DATABASE }}
+                rootPassword: {{ components.mysql-runner.vars.MYSQL_ROOT_PASS }}
+                username: {{ components.mysql-runner.vars.MYSQL_USER }}
+                password: {{ components.mysql-runner.vars.MYSQL_PASS }}
+        EOF
+      - |
+        helm upgrade --install --namespace {{ env.k8s.namespace }} \
+          --post-renderer /bns/helpers/helm/add_labels/kustomize \
+          -f my_values.yaml \
+          mysql bitnami/mysql --version 9.4.3
+      - |
+        MYSQL_HOST="mysql.{{ env.k8s.namespace }}.svc.cluster.local"
+    destroy:
+      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
+    start:
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/mysql'
+    stop:
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
+    exportVariables:
+      - MYSQL_HOST
+
   - kind: Application
     name: api
     gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
@@ -66,39 +102,3 @@ components:
           reservations:
             cpus: '0.10'
             memory: 350M
-
-  - kind: Helm
-    name: mysql-runner
-    runnerImage: 'dtzar/helm-kubectl:3.8.2'
-    environment:
-      MYSQL_DATABASE: bunnyshell
-      MYSQL_USER: bunnyshell_user
-      MYSQL_PASS: bunnyshell_pass
-      MYSQL_ROOT_PASS: bunnyshell_root_pass
-    deploy:
-      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
-      - |
-        cat << EOF > my_values.yaml
-            global:
-                storageClass: bns-network-sc
-            auth:
-                database: {{ components.mysql-runner.vars.MYSQL_DATABASE }}
-                rootPassword: {{ components.mysql-runner.vars.MYSQL_ROOT_PASS }}
-                username: {{ components.mysql-runner.vars.MYSQL_USER }}
-                password: {{ components.mysql-runner.vars.MYSQL_PASS }}
-        EOF
-      - |
-        helm upgrade --install --namespace {{ env.k8s.namespace }} \
-          --post-renderer /bns/helpers/helm/add_labels/kustomize \
-          -f my_values.yaml \
-          mysql bitnami/mysql --version 9.4.3
-      - |
-        MYSQL_HOST="mysql.{{ env.k8s.namespace }}.svc.cluster.local"
-    destroy:
-      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
-    start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/mysql'
-    stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
-    exportVariables:
-      - MYSQL_HOST

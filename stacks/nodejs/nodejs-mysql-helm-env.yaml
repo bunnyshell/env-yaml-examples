@@ -3,35 +3,6 @@ name: 'nodejs Environment with MySQL'
 type: primary
 
 components:
-  - kind: Application
-    name: api
-    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
-    gitBranch: master
-    gitApplicationPath: ./apps/nodejs/
-    dockerCompose:
-      build:
-        context: ./apps/nodejs/
-        dockerfile: .docker/Dockerfile
-      environment:
-        MYSQL_HOST: '{{ components.mysql-runner.exported.MYSQL_HOST }}'
-        MYSQL_DATABASE: '{{ components.mysql-runner.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql-runner.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql-runner.vars.MYSQL_PASS }}'
-      user: '1000:1000'
-      ports:
-        - '8080:8080'
-      deploy:
-        resources:
-          limits:
-            memory: 250M
-          reservations:
-            cpus: '0.15'
-            memory: 50M
-    hosts:
-      - hostname: api-{{env.base_domain}}
-        path: /
-        servicePort: 8080
-
   - kind: Helm
     name: mysql-runner
     runnerImage: 'dtzar/helm-kubectl:3.8.2'
@@ -67,3 +38,32 @@ components:
       - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
     exportVariables:
       - MYSQL_HOST
+
+  - kind: Application
+    name: api
+    gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
+    gitBranch: master
+    gitApplicationPath: ./apps/nodejs/
+    dockerCompose:
+      build:
+        context: ./apps/nodejs/
+        dockerfile: .docker/Dockerfile
+      environment:
+        MYSQL_HOST: '{{ components.mysql-runner.exported.MYSQL_HOST }}'
+        MYSQL_DATABASE: '{{ components.mysql-runner.vars.MYSQL_DATABASE }}'
+        MYSQL_USER: '{{ components.mysql-runner.vars.MYSQL_USER }}'
+        MYSQL_PASSWORD: '{{ components.mysql-runner.vars.MYSQL_PASS }}'
+      user: '1000:1000'
+      ports:
+        - '8080:8080'
+      deploy:
+        resources:
+          limits:
+            memory: 250M
+          reservations:
+            cpus: '0.15'
+            memory: 50M
+    hosts:
+      - hostname: api-{{env.base_domain}}
+        path: /
+        servicePort: 8080
