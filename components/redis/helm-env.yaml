@@ -18,7 +18,7 @@ components:
           -f my_values.yaml \
           redis bitnami/redis --version 17.3.11
       - |
-        REDIS_HOST="redis.{{ env.k8s.namespace }}.svc.cluster.local"
+        REDIS_HOST="redis-master.{{ env.k8s.namespace }}.svc.cluster.local"
     destroy:
       - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
     start:
