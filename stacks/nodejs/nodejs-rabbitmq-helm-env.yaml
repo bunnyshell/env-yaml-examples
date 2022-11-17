@@ -1,16 +1,14 @@
 kind: Environment
-name: 'nodejs Environment with MySQL'
+name: 'nodejs Environment with RabbitMQ'
 type: primary
 
 components:
   - kind: Helm
-    name: mysql-runner
+    name: rabbitmq-runner
     runnerImage: 'dtzar/helm-kubectl:3.8.2'
     environment:
-      MYSQL_DATABASE: bunnyshell
-      MYSQL_USER: bunnyshell_user
-      MYSQL_PASS: bunnyshell_pass
-      MYSQL_ROOT_PASS: bunnyshell_root_pass
+      RABBITMQ_USER: bunnyshell_user
+      RABBITMQ_PASS: bunnyshell_pass
     deploy:
       - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
       - |
@@ -18,26 +16,24 @@ components:
             global:
                 storageClass: bns-network-sc
             auth:
-                database: {{ components.mysql-runner.vars.MYSQL_DATABASE }}
-                rootPassword: {{ components.mysql-runner.vars.MYSQL_ROOT_PASS }}
-                username: {{ components.mysql-runner.vars.MYSQL_USER }}
-                password: {{ components.mysql-runner.vars.MYSQL_PASS }}
+                username: {{ components.rabbitmq-runner.vars.RABBITMQ_USER }}
+                password: {{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}
         EOF
       - |
         helm upgrade --install --namespace {{ env.k8s.namespace }} \
           --post-renderer /bns/helpers/helm/add_labels/kustomize \
           -f my_values.yaml \
-          mysql bitnami/mysql --version 9.4.3
+          rabbitmq bitnami/rabbitmq --version 11.1.2
       - |
-        MYSQL_HOST="mysql.{{ env.k8s.namespace }}.svc.cluster.local"
+        RABBITMQ_HOST="rabbitmq.{{ env.k8s.namespace }}.svc.cluster.local"
     destroy:
       - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
     start:
-      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/mysql'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
     stop:
-      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/mysql'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
     exportVariables:
-      - MYSQL_HOST
+      - RABBITMQ_HOST
 
   - kind: Application
     name: api
@@ -49,10 +45,9 @@ components:
         context: ./apps/nodejs/
         dockerfile: .docker/Dockerfile
       environment:
-        MYSQL_HOST: '{{ components.mysql-runner.exported.MYSQL_HOST }}'
-        MYSQL_DATABASE: '{{ components.mysql-runner.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql-runner.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql-runner.vars.MYSQL_PASS }}'
+        RABBITMQ_HOST: '{{ components.rabbitmq-runner.exported.RABBITMQ_HOST }}'
+        RABBITMQ_USER: '{{ components.rabbitmq-runner.vars.RABBITMQ_USER }}'
+        RABBITMQ_PASS: '{{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}'
       user: '1000:1000'
       ports:
         - '8080:8080'

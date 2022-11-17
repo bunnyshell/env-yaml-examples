@@ -1,0 +1,31 @@
+kind: Environment
+name: 'Redis Component Example'
+type: primary
+
+components:
+  - kind: Helm
+    name: redis-runner
+    runnerImage: 'dtzar/helm-kubectl:3.8.2'
+    deploy:
+      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
+      - |
+        cat << EOF > my_values.yaml
+
+        EOF
+      - |
+        helm upgrade --install --namespace {{ env.k8s.namespace }} \
+          --post-renderer /bns/helpers/helm/add_labels/kustomize \
+          -f my_values.yaml \
+          redis bitnami/redis --version 17.3.11
+      - |
+        REDIS_HOST="redis-master.{{ env.k8s.namespace }}.svc.cluster.local"
+    destroy:
+      - 'helm uninstall redis --namespace {{ env.k8s.namespace }}'
+    start:
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/redis-master'
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/redis-replicas'
+    stop:
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/redis-master'
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/redis-replicas'
+    exportVariables:
+      - REDIS_HOST

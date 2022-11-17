@@ -1,8 +1,40 @@
 kind: Environment
-name: 'PHP Environment with MySQL'
+name: 'PHP Environment with RabbitMQ'
 type: primary
 
 components:
+  - kind: Helm
+    name: rabbitmq-runner
+    runnerImage: 'dtzar/helm-kubectl:3.8.2'
+    environment:
+      RABBITMQ_USER: bunnyshell_user
+      RABBITMQ_PASS: bunnyshell_pass
+    deploy:
+      - 'helm repo add bitnami https://charts.bitnami.com/bitnami'
+      - |
+        cat << EOF > my_values.yaml
+            global:
+                storageClass: bns-network-sc
+            auth:
+                username: {{ components.rabbitmq-runner.vars.RABBITMQ_USER }}
+                password: {{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}
+        EOF
+      - |
+        helm upgrade --install --namespace {{ env.k8s.namespace }} \
+          --post-renderer /bns/helpers/helm/add_labels/kustomize \
+          -f my_values.yaml \
+          rabbitmq bitnami/rabbitmq --version 11.1.2
+      - |
+        RABBITMQ_HOST="rabbitmq.{{ env.k8s.namespace }}.svc.cluster.local"
+    destroy:
+      - 'helm uninstall postgres --namespace {{ env.k8s.namespace }}'
+    start:
+      - 'kubectl scale --replicas=1 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
+    stop:
+      - 'kubectl scale --replicas=0 --namespace {{ env.k8s.namespace }} statefulset/rabbitmq'
+    exportVariables:
+      - RABBITMQ_HOST
+
   - kind: Application
     name: api
     gitRepo: 'git://github.com/bunnyshellosi/env-yaml-examples.git'
@@ -15,10 +47,9 @@ components:
       command:
         - php-fpm
       environment:
-        MYSQL_HOST: mysql
-        MYSQL_DATABASE: '{{ components.mysql.vars.MYSQL_DATABASE }}'
-        MYSQL_USER: '{{ components.mysql.vars.MYSQL_USER }}'
-        MYSQL_PASSWORD: '{{ components.mysql.vars.MYSQL_PASSWORD }}'
+        RABBITMQ_HOST: '{{ components.rabbitmq-runner.exported.RABBITMQ_HOST }}'
+        RABBITMQ_USER: '{{ components.rabbitmq-runner.vars.RABBITMQ_USER }}'
+        RABBITMQ_PASS: '{{ components.rabbitmq-runner.vars.RABBITMQ_PASS }}'
       user: '1000:1000'
       ports:
         - '9003:9003'
@@ -66,32 +97,3 @@ components:
           reservations:
             cpus: '0.10'
             memory: 350M
-
-  - kind: Database
-    name: mysql
-    dockerCompose:
-      image: 'mysql:8.0.31'
-      command: '--default-authentication-plugin=mysql_native_password'
-      environment:
-        MYSQL_DATABASE: bunnyshell
-        MYSQL_USER: bunnyshell_user
-        MYSQL_PASSWORD: bunnyshell_pass
-        MYSQL_ROOT_PASSWORD: bunnyshell_root_pass
-      ports:
-        - '3306:3306'
-      deploy:
-        resources:
-          limits:
-            memory: 1G
-          reservations:
-            cpus: '0.25'
-            memory: 750M
-    volumes:
-      - name: database-mysql-data
-        mount: /var/lib/mysql
-        subPath: ''
-
-volumes:
-  - name: database-mysql-data
-    size: 1Gi
-    type: disk
