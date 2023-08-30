@@ -1,7 +1,7 @@
 {
   "dependencies": {
     "amqplib": "^0.10.3",
-    "mongodb": "^4.11.0",
+    "mongodb": "^4.17.0",
     "mysql2": "^2.3.3",
     "redis": "^4.5.0"
   },
